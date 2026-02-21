@@ -1,0 +1,478 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PARENT
+  TEACHER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum TestType {
+  ENDLINE
+  MIDLINE
+  UNIT_TEST
+  WEEKLY
+}
+
+enum TestMode {
+  ONLINE
+  OFFLINE
+}
+
+enum QuestionType {
+  OBJECTIVE
+  DESCRIPTIVE
+}
+
+enum HomeworkSubmissionStatus {
+  SUBMITTED
+  NOT_SUBMITTED
+  LATE
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+}
+
+enum FeeType {
+  ONE_TIME
+  INSTALLMENT
+}
+
+enum PaymentMode {
+  ONLINE
+  CASH
+  CHEQUE
+}
+
+enum PaymentStatus {
+  SUCCESS
+  PENDING
+  FAILED
+}
+
+enum TransportType {
+  PICKUP
+  DROP
+  BOTH
+}
+
+enum EventType {
+  PICNIC
+  SPORTS
+  CULTURAL
+  MEETING
+  OTHER
+}
+
+enum TargetAudience {
+  ALL
+  PARENTS
+  TEACHERS
+}
+
+enum RemarkCategory {
+  BEHAVIORAL
+  ACADEMIC
+  GENERAL
+}
+
+model School {
+  id            String           @id @default(cuid())
+  name          String
+  code          String           @unique
+  address       String
+  logo          String?
+  phone         String
+  email         String
+  createdAt     DateTime         @default(now())
+  users         User[]
+  students      Student[]
+  classes       Class[]
+  academicYears AcademicYear[]
+  feeStructures FeeStructure[]
+  busRoutes     BusRoute[]
+  events        Event[]
+  announcements Announcement[]
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  phone         String?
+  password      String
+  role          Role
+  schoolId      String
+  school        School         @relation(fields: [schoolId], references: [id])
+  isActive      Boolean        @default(true)
+  lastLogin     DateTime?
+  createdAt     DateTime       @default(now())
+  parent        Parent?
+  teacher       Teacher?
+  notifications Notification[]
+}
+
+model Parent {
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  user       User      @relation(fields: [userId], references: [id])
+  firstName  String
+  lastName   String
+  phone      String
+  email      String
+  address    String
+  occupation String?
+  students   Student[]
+}
+
+model Teacher {
+  id              String       @id @default(cuid())
+  userId          String       @unique
+  user            User         @relation(fields: [userId], references: [id])
+  firstName       String
+  lastName        String
+  phone           String
+  email           String
+  photo           String?
+  subjects        String[]
+  qualification   String?
+  isClassTeacher  Boolean      @default(false)
+  classTeacherId  String?
+  assessments     Assessment[]
+  homework        Homework[]
+  remarks         StudentRemark[]
+}
+
+model Class {
+  id          String         @id @default(cuid())
+  name        String
+  schoolId    String
+  school      School         @relation(fields: [schoolId], references: [id])
+  sections    Section[]
+  students    Student[]
+  subjects    Subject[]
+  assessments Assessment[]
+  homework    Homework[]
+  attendance  Attendance[]
+  fees        FeeStructure[]
+  activities  Activity[]
+}
+
+model Section {
+  id          String         @id @default(cuid())
+  name        String
+  classId     String
+  class       Class          @relation(fields: [classId], references: [id])
+  students    Student[]
+  assessments Assessment[]
+  homework    Homework[]
+  attendance  Attendance[]
+  activities  Activity[]
+}
+
+model Student {
+  id                 String                    @id @default(cuid())
+  firstName          String
+  lastName           String
+  photo              String?
+  dateOfBirth        DateTime
+  gender             String
+  admissionNumber    String                    @unique
+  classId            String
+  class              Class                     @relation(fields: [classId], references: [id])
+  sectionId          String
+  section            Section                   @relation(fields: [sectionId], references: [id])
+  parentId           String
+  parent             Parent                    @relation(fields: [parentId], references: [id])
+  schoolId           String
+  school             School                    @relation(fields: [schoolId], references: [id])
+  address            String
+  bloodGroup         String?
+  isActive           Boolean                   @default(true)
+  assessmentResults  StudentAssessmentResult[]
+  homeworkSubmission HomeworkSubmission[]
+  attendance         Attendance[]
+  feePayments        FeePayment[]
+  transport          StudentTransport[]
+  eventRegistrations EventRegistration[]
+  activities         Activity[]
+  remarks            StudentRemark[]
+}
+
+model AcademicYear {
+  id            String       @id @default(cuid())
+  name          String
+  startDate     DateTime
+  endDate       DateTime
+  isCurrent     Boolean      @default(false)
+  schoolId      String
+  school        School       @relation(fields: [schoolId], references: [id])
+  assessments   Assessment[]
+  feeStructures FeeStructure[]
+}
+
+model Subject {
+  id          String       @id @default(cuid())
+  name        String
+  code        String
+  classId     String
+  class       Class        @relation(fields: [classId], references: [id])
+  assessments Assessment[]
+  homework    Homework[]
+}
+
+model Assessment {
+  id              String                    @id @default(cuid())
+  title           String
+  subjectId       String
+  subject         Subject                   @relation(fields: [subjectId], references: [id])
+  classId         String
+  class           Class                     @relation(fields: [classId], references: [id])
+  sectionId       String
+  section         Section                   @relation(fields: [sectionId], references: [id])
+  teacherId       String
+  teacher         Teacher                   @relation(fields: [teacherId], references: [id])
+  totalMarks      Float
+  testType        TestType
+  testMode        TestMode
+  testDate        DateTime
+  duration        Int
+  academicYearId  String
+  academicYear    AcademicYear              @relation(fields: [academicYearId], references: [id])
+  questions       AssessmentQuestion[]
+  studentResults  StudentAssessmentResult[]
+}
+
+model AssessmentQuestion {
+  id             String       @id @default(cuid())
+  assessmentId   String
+  assessment     Assessment   @relation(fields: [assessmentId], references: [id])
+  questionNumber Int
+  questionText   String
+  marks          Float
+  correctAnswer  String?
+  questionType   QuestionType
+  results        StudentQuestionResult[]
+}
+
+model StudentAssessmentResult {
+  id                    String                  @id @default(cuid())
+  studentId             String
+  student               Student                 @relation(fields: [studentId], references: [id])
+  assessmentId          String
+  assessment            Assessment              @relation(fields: [assessmentId], references: [id])
+  totalMarksObtained    Float
+  percentage            Float
+  grade                 String
+  teacherRemarks        String?
+  evaluatedAt           DateTime                @default(now())
+  questionResults       StudentQuestionResult[]
+}
+
+model StudentQuestionResult {
+  id                        String                  @id @default(cuid())
+  studentAssessmentResultId String
+  studentAssessmentResult   StudentAssessmentResult @relation(fields: [studentAssessmentResultId], references: [id])
+  questionId                String
+  question                  AssessmentQuestion      @relation(fields: [questionId], references: [id])
+  marksObtained             Float
+  answer                    String?
+  isCorrect                 Boolean?
+}
+
+model Homework {
+  id               String               @id @default(cuid())
+  subjectId        String
+  subject          Subject              @relation(fields: [subjectId], references: [id])
+  classId          String
+  class            Class                @relation(fields: [classId], references: [id])
+  sectionId        String
+  section          Section              @relation(fields: [sectionId], references: [id])
+  teacherId        String
+  teacher          Teacher              @relation(fields: [teacherId], references: [id])
+  topic            String
+  description      String
+  classworkDetails String?
+  homeworkDetails  String
+  dueDate          DateTime
+  createdAt        DateTime             @default(now())
+  isOffline        Boolean              @default(false)
+  submissions      HomeworkSubmission[]
+}
+
+model HomeworkSubmission {
+  id             String                   @id @default(cuid())
+  homeworkId     String
+  homework       Homework                 @relation(fields: [homeworkId], references: [id])
+  studentId      String
+  student        Student                  @relation(fields: [studentId], references: [id])
+  status         HomeworkSubmissionStatus
+  submittedAt    DateTime?
+  teacherRemarks String?
+}
+
+model Attendance {
+  id        String           @id @default(cuid())
+  studentId String
+  student   Student          @relation(fields: [studentId], references: [id])
+  classId   String
+  class     Class            @relation(fields: [classId], references: [id])
+  sectionId String
+  section   Section          @relation(fields: [sectionId], references: [id])
+  date      DateTime
+  status    AttendanceStatus
+  markedBy  String
+  remarks   String?
+}
+
+model FeeStructure {
+  id                String       @id @default(cuid())
+  academicYearId    String
+  academicYear      AcademicYear @relation(fields: [academicYearId], references: [id])
+  classId           String
+  class             Class        @relation(fields: [classId], references: [id])
+  schoolId          String
+  school            School       @relation(fields: [schoolId], references: [id])
+  feeType           FeeType
+  installmentNumber Int?
+  amount            Float
+  dueDate           DateTime
+  description       String?
+  payments          FeePayment[]
+}
+
+model FeePayment {
+  id             String        @id @default(cuid())
+  studentId      String
+  student        Student       @relation(fields: [studentId], references: [id])
+  feeStructureId String
+  feeStructure   FeeStructure  @relation(fields: [feeStructureId], references: [id])
+  amountPaid     Float
+  paymentDate    DateTime      @default(now())
+  transactionId  String
+  paymentMode    PaymentMode
+  status         PaymentStatus
+  receiptUrl     String?
+}
+
+model BusRoute {
+  id            String             @id @default(cuid())
+  name          String
+  schoolId      String
+  school        School             @relation(fields: [schoolId], references: [id])
+  driverName    String
+  driverPhone   String
+  vehicleNumber String
+  stops         BusStop[]
+  transports    StudentTransport[]
+}
+
+model BusStop {
+  id         String             @id @default(cuid())
+  routeId    String
+  route      BusRoute           @relation(fields: [routeId], references: [id])
+  stopName   String
+  stopNumber Int
+  pickupTime String
+  dropTime   String
+  latitude   Float
+  longitude  Float
+  transports StudentTransport[]
+}
+
+model StudentTransport {
+  id        String        @id @default(cuid())
+  studentId String
+  student   Student       @relation(fields: [studentId], references: [id])
+  busRouteId String
+  busRoute  BusRoute      @relation(fields: [busRouteId], references: [id])
+  busStopId String
+  busStop   BusStop       @relation(fields: [busStopId], references: [id])
+  type      TransportType
+}
+
+model Event {
+  id                     String              @id @default(cuid())
+  title                  String
+  description            String
+  eventDate              DateTime
+  registrationDeadline   DateTime?
+  location               String
+  schoolId               String
+  school                 School              @relation(fields: [schoolId], references: [id])
+  createdBy              String
+  eventType              EventType
+  isRegistrationRequired Boolean             @default(false)
+  maxCapacity            Int?
+  registrations          EventRegistration[]
+}
+
+model EventRegistration {
+  id           String   @id @default(cuid())
+  eventId      String
+  event        Event    @relation(fields: [eventId], references: [id])
+  studentId    String
+  student      Student  @relation(fields: [studentId], references: [id])
+  registeredAt DateTime @default(now())
+  status       String
+}
+
+model Announcement {
+  id             String         @id @default(cuid())
+  title          String
+  content        String
+  schoolId       String
+  school         School         @relation(fields: [schoolId], references: [id])
+  createdBy      String
+  targetAudience TargetAudience
+  imageUrl       String?
+  createdAt      DateTime       @default(now())
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id])
+  classId     String
+  class       Class    @relation(fields: [classId], references: [id])
+  sectionId   String
+  section     Section  @relation(fields: [sectionId], references: [id])
+  description String
+  photos      String[]
+  createdBy   String
+  createdAt   DateTime @default(now())
+}
+
+model StudentRemark {
+  id         String         @id @default(cuid())
+  studentId  String
+  student    Student        @relation(fields: [studentId], references: [id])
+  teacherId  String
+  teacher    Teacher        @relation(fields: [teacherId], references: [id])
+  remark     String
+  category   RemarkCategory
+  date       DateTime
+  isPositive Boolean
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  title       String
+  body        String
+  type        String
+  referenceId String?
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
