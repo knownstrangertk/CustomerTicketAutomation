@@ -1,0 +1,16 @@
+{
+  "name": "schoolconnect-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "backend",
+    "mobile",
+    "teacher-portal",
+    "admin-dashboard",
+    "shared"
+  ],
+  "scripts": {
+    "build": "npm run -w backend build && npm run -w teacher-portal build && npm run -w admin-dashboard build",
+    "dev": "npm run -w backend dev"
+  }
+}
